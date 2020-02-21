@@ -1,16 +1,19 @@
 from flask import render_template
+from flask import request
 
 from app import app
-from app import connection
+
+KEY_EMAIL = 'email'
+KEY_PASSWORD = 'password'
 
 
 @app.route('/get_stories')
-def index():
+def get_stories():
     return render_template('stories_list.json')
 
 
-@app.route('/test')
-def test():
-    fetch_query = connection.execute("SELECT * FROM users")
-    for data in fetch_query.fetchall():
-        return str(data)
+@app.route('/login', methods=['POST'])
+def login():
+    email = request.form.get(KEY_EMAIL)
+    password = request.args.get(KEY_PASSWORD)
+    return email
