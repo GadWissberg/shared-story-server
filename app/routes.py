@@ -1,7 +1,10 @@
 from flask import render_template
 from flask import request
 
-from app import app
+from app import app, session
+from app.models import User
+
+QUERY_CHECK_LOGIN = "select * from users where name=\'{0}\' and password=\'{1}\'"
 
 KEY_EMAIL = 'email'
 KEY_PASSWORD = 'password'
@@ -14,6 +17,10 @@ def get_stories():
 
 @app.route('/login', methods=['POST'])
 def login():
-    email = request.form.get(KEY_EMAIL)
-    password = request.args.get(KEY_PASSWORD)
-    return email
+    request_email = request.form.get(KEY_EMAIL)
+    request_password = request.form.get(KEY_PASSWORD)
+    result = session.query(User).filter_by(email=request_email, password=request_password)
+    if result.count() != 0:
+        logged_user = result.first()
+        session.add(logged_user)
+    return str(result.count() != 0)

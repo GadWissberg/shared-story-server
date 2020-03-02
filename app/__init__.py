@@ -1,12 +1,17 @@
 from flask import Flask
 from sqlalchemy import create_engine
+from sqlalchemy.orm import sessionmaker
 
 from config import Config
 
+DB = 'postgresql://postgres:fatcow@localhost/mututale'
+
 app = Flask(__name__)
 app.config.from_object(Config)
-engine = create_engine('postgresql://postgres:fatcow@localhost/mututale')
+engine = create_engine(DB)
 connection = engine.connect()
-print("DB Instance created")
+Session = sessionmaker(bind=engine)
+session = Session()
 
+from app import models
 from app import routes
