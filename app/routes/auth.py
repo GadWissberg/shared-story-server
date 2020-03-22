@@ -5,6 +5,8 @@ from werkzeug.security import generate_password_hash, check_password_hash
 from app import db
 from app.models import User
 
+MESSAGE_LOGIN_FAIL = 'Please check your login details and try again.'
+
 auth = Blueprint('auth', __name__)
 
 
@@ -15,7 +17,7 @@ def login():
     remember = True if request.form.get('remember') else False
     user = User.query.filter_by(email=email).first()
     if not user or not check_password_hash(user.password, password):
-        flash('Please check your login details and try again.')
+        flash(MESSAGE_LOGIN_FAIL)
         return redirect(url_for('auth.login'))
     login_user(user, remember=remember)
     return redirect(url_for('main.get_stories'))

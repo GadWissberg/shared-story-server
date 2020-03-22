@@ -19,7 +19,7 @@ def load_user(user_id):
     return User.query.filter_by(id=user_id).first()
 
 
-from .auth import auth as auth_blueprint
+from app.routes.auth import auth as auth_blueprint
 
 app.register_blueprint(auth_blueprint)
 
