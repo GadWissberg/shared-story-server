@@ -6,16 +6,18 @@ from werkzeug.security import generate_password_hash, check_password_hash
 from app import db
 from app.models import User
 
+ENCRYPT_METHOD = 'sha256'
+
 MESSAGE_WELCOME = "Welcome {}!"
 
 PARAMETER_LOGIN_PASSWORD = 'password'
 PARAMETER_LOGIN_EMAIL = 'email'
 MESSAGE_WRONG_CREDENTIALS = 'Given credentials are wrong.'
 
-auth = Blueprint('auth', __name__)
+auth_blue_print = Blueprint('auth', __name__)
 
 
-@auth.route('/login', methods=['POST'])
+@auth_blue_print.route('/login', methods=['POST'])
 def login():
     email = request.form.get(PARAMETER_LOGIN_EMAIL)
     password = request.form.get(PARAMETER_LOGIN_PASSWORD)
@@ -27,7 +29,7 @@ def login():
     return render_template("response.json", success=1, message=(MESSAGE_WELCOME.format(user.name)))
 
 
-@auth.route('/signup', methods=['POST'])
+@auth_blue_print.route('/signup', methods=['POST'])
 def signup():
     email = request.form.get('email')
     name = request.form.get('name')
@@ -36,13 +38,13 @@ def signup():
     if user:
         flash('Email address already exists')
         return redirect(url_for('auth.signup'))
-    new_user = User(email=email, name=name, password=generate_password_hash(password, method='sha256'))
+    new_user = User(email=email, name=name, password=generate_password_hash(password, method=ENCRYPT_METHOD))
     db.session.add(new_user)
     db.session.commit()
     return redirect(url_for('auth.login'))
 
 
-@auth.route('/logout')
+@auth_blue_print.route('/logout')
 @login_required
 def logout():
     logout_user()
