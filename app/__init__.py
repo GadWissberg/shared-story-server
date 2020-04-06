@@ -13,6 +13,8 @@ app.register_blueprint(error_handlers.blueprint)
 db = SQLAlchemy()
 login_manager = LoginManager()
 login_manager.login_view = 'auth.login'
+db.init_app(app)
+login_manager.init_app(app)
 
 from .models import User
 
@@ -23,8 +25,3 @@ app.register_blueprint(auth_blueprint)
 from app.routes.main import main as main_blueprint
 
 app.register_blueprint(main_blueprint)
-
-if __name__ == '__main__':
-    db.init_app(app)
-    app.register_blueprint(auth_blue_print)
-    login_manager.init_app(app)
