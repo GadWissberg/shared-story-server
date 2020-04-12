@@ -11,10 +11,16 @@ app.config['SECRET_KEY'] = '9OLWxND4o83j4K4iuopO'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.register_blueprint(error_handlers.blueprint)
 db = SQLAlchemy()
-login_manager = LoginManager()
+login_manager = LoginManager(app)
 login_manager.login_view = 'auth.login'
 db.init_app(app)
 login_manager.init_app(app)
+
+
+@login_manager.user_loader
+def load_user(user_id):
+    return User.query.filter_by(id=user_id).first()
+
 
 from .models import User
 

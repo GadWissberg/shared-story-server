@@ -1,8 +1,16 @@
-from flask import Blueprint, render_template, request
+import json
+
+from flask import Blueprint, render_template, request, Response
 from flask_login import login_required, current_user
 
 from app import db
 from app.models import Story, Paragraph
+
+RESPONSE_KEY_STORIES = "stories"
+
+RESPONSE_KEY_DATA = 'data'
+
+RESPONSE_KEY_SUCCESS = 'success'
 
 main = Blueprint('main', __name__)
 
@@ -12,10 +20,22 @@ def index():
     return 'Index'
 
 
+def create_response(success, data):
+    resp = {
+        RESPONSE_KEY_SUCCESS: success,
+        RESPONSE_KEY_DATA: data
+    }
+    return Response(json.dumps(resp), mimetype='application/json')
+
+
 @main.route('/get_stories', methods=['GET'])
 @login_required
 def get_stories():
-    return render_template('stories_list.json')
+    stories = db.session.query().with_entities(Story.id, Story.title).all()
+    stories_dict = {}
+    for story in stories:
+        stories_dict[story.id] = story.title
+    return create_response(True, {RESPONSE_KEY_STORIES: stories_dict})
 
 
 @main.route('/begin_story', methods=['POST'])
