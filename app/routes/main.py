@@ -6,6 +6,8 @@ from flask_login import login_required, current_user
 from app import db
 from app.models import Story, Paragraph
 
+RESPONSE_KEY_MESSAGE = "message"
+
 RESPONSE_KEY_STORIES = "stories"
 
 RESPONSE_KEY_DATA = 'data'
@@ -20,11 +22,14 @@ def index():
     return 'Index'
 
 
-def create_response(success, data):
+def create_response(success, data=None, message=None):
     resp = {
-        RESPONSE_KEY_SUCCESS: success,
-        RESPONSE_KEY_DATA: data
+        RESPONSE_KEY_SUCCESS: success
     }
+    if data is not None:
+        resp[RESPONSE_KEY_DATA] = data
+    if message is not None:
+        resp[RESPONSE_KEY_MESSAGE] = message
     return Response(json.dumps(resp), mimetype='application/json')
 
 
