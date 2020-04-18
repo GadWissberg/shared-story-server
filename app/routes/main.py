@@ -1,10 +1,12 @@
 import json
 
-from flask import Blueprint, render_template, request, Response
+from flask import Blueprint, request, Response
 from flask_login import login_required, current_user
 
 from app import db
 from app.models import Story, Paragraph
+
+RESPONSE_KEY_ID = "id"
 
 RESPONSE_KEY_MESSAGE = "message"
 
@@ -47,16 +49,16 @@ def get_stories():
 @login_required
 def begin_story():
     new_story = add_new_story()
-    new_paragraph = add_new_paragraph(new_story)
-    new_story.first_paragraph_id = new_paragraph.id
-    db.session.commit()
-    return render_template('response.json', success=1)
+    add_new_paragraph(new_story)
+    return create_response(True, {RESPONSE_KEY_ID: new_story.id})
 
 
 def add_new_paragraph(new_story):
     paragraph = request.form.get('paragraph')
     new_paragraph = Paragraph(new_story.id, current_user.id, paragraph)
     db.session.add(new_paragraph)
+    db.session.commit()
+    new_story.first_paragraph_id = new_paragraph.id
     db.session.commit()
     return new_paragraph
 
