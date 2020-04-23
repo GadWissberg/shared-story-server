@@ -31,6 +31,11 @@ RESPONSE_KEY_SUCCESS = 'success'
 main = Blueprint('main', __name__)
 
 
+##
+# @param success Whether response is success.
+# @param data Additional optional dictionary.
+# @param message Additional message.
+# @return A flask wrapper response
 def create_response(success, data=None, message=None):
     resp = {
         RESPONSE_KEY_SUCCESS: success
