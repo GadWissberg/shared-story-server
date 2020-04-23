@@ -7,6 +7,7 @@ from werkzeug.security import generate_password_hash
 from app import User, db, login_manager
 from app.routes import auth
 from app.routes.auth import auth_blue_print, ENCRYPT_METHOD
+from app.routes.main import create_response, RESPONSE_KEY_SUCCESS, RESPONSE_KEY_DATA
 
 NAME = "gad"
 
@@ -44,6 +45,13 @@ class MyTest(TestCase):
         db.session.commit()
         rv = self.client.post('/login', data=params)
         self.assert200(rv)
+
+    def test_create_response(self):
+        response = create_response(True)
+        print(response)
+        self.assert200(response)
+        self.assertTrue(response.get_json()[RESPONSE_KEY_SUCCESS])
+        self.assertFalse(RESPONSE_KEY_DATA in response.get_json())
 
     def setUp(self):
         db.create_all()
