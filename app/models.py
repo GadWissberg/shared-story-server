@@ -23,7 +23,7 @@ class Story(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     title = db.Column(db.String(100), nullable=False)
     owner_id = db.Column(db.Integer, nullable=False, unique=True)
-    first_paragraph_id = db.Column(db.Integer, nullable=False)
+    paragraphs = db.Column(db.String(), nullable=True)
 
     def __init__(self, title, owner_id):
         self.title = title
@@ -41,3 +41,6 @@ class Paragraph(db.Model):
         self.story_id = story_id
         self.owner_id = owner_id
         self.content = content
+
+    def as_dict(self):
+        return {c.name: getattr(self, c.name) for c in self.__table__.columns}

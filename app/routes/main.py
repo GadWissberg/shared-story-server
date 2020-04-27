@@ -7,6 +7,10 @@ from werkzeug.exceptions import abort
 from app import db
 from app.models import Story, Paragraph
 
+RESPONSE_KEY_PARAGRAPHS = "paragraphs"
+
+RESPONSE_KEY_TITLE = "title"
+
 MESSAGE_MANDATORY_FIELD_WAS_NOT_SUPPLIED = "The mandatory field was not supplied: {0}"
 
 MAX_SIZE_TITLE = 64
@@ -17,6 +21,8 @@ MESSAGE_CANNOT_BE_EMPTY = "The parameter {0} cannot be empty!"
 REQUEST_KEY_TITLE = 'title'
 
 REQUEST_KEY_PARAGRAPH = 'paragraph'
+
+REQUEST_KEY_ID = "id"
 
 RESPONSE_KEY_ID = "id"
 
@@ -47,44 +53,38 @@ def create_response(success, data=None, message=None):
     return Response(json.dumps(resp), mimetype='application/json')
 
 
-@main.route('/get_stories', methods=['GET'])
-@login_required
-def get_stories():
-    stories = db.session.query().with_entities(Story.id, Story.title).all()
-    stories_dict = {}
-    for story in stories:
-        stories_dict[story.id] = story.title
-    return create_response(True, {RESPONSE_KEY_STORIES: stories_dict})
-
-
-@main.route('/begin_story', methods=['POST'])
+@main.route('/story', methods=['POST'])
 @login_required
 def begin_story():
-    validate_request_for_new_story()
-    new_story = add_new_story()
-    add_new_paragraph(new_story)
+    _validate_request_for_new_story()
+    new_story = _add_new_story()
+    _add_new_paragraph(new_story)
     return create_response(True, {RESPONSE_KEY_ID: new_story.id})
 
 
-def add_new_paragraph(new_story):
+def _add_new_paragraph(story):
     paragraph = request.form.get(REQUEST_KEY_PARAGRAPH)
-    new_paragraph = Paragraph(new_story.id, current_user.id, paragraph)
-    db.session.add(new_paragraph)
+    paragraph_entry = Paragraph(story.id, current_user.id, paragraph)
+    db.session.add(paragraph_entry)
     db.session.commit()
-    new_story.first_paragraph_id = new_paragraph.id
+    story_paragraphs = story.paragraphs
+    if story_paragraphs is None:
+        story_paragraphs = []
+    story_paragraphs.append(paragraph_entry.id)
+    story.paragraphs = json.dumps(story_paragraphs)
     db.session.commit()
-    return new_paragraph
+    return paragraph_entry
 
 
-def validate_request_for_new_story():
-    failure_message = check_parameter_length(REQUEST_KEY_TITLE, MAX_SIZE_TITLE)
+def _validate_request_for_new_story():
+    failure_message = _check_parameter_length(REQUEST_KEY_TITLE, MAX_SIZE_TITLE)
     if failure_message is None:
-        failure_message = check_parameter_length(REQUEST_KEY_PARAGRAPH, MAX_SIZE_PARAGRAPH)
+        failure_message = _check_parameter_length(REQUEST_KEY_PARAGRAPH, MAX_SIZE_PARAGRAPH)
     if failure_message is not None:
         abort(400, description=failure_message)
 
 
-def check_parameter_length(parameter, max_size):
+def _check_parameter_length(parameter, max_size):
     failure_message = None
     if parameter not in request.form:
         failure_message = MESSAGE_MANDATORY_FIELD_WAS_NOT_SUPPLIED.format(parameter)
@@ -95,9 +95,39 @@ def check_parameter_length(parameter, max_size):
     return failure_message
 
 
-def add_new_story():
+def _add_new_story():
     title = request.form.get(REQUEST_KEY_TITLE)
-    new_story = Story(title, current_user.id)
-    db.session.add(new_story)
+    story = Story(title, current_user.id)
+    db.session.add(story)
     db.session.commit()
-    return new_story
+    return story
+
+
+@main.route('/story', methods=['GET'])
+@login_required
+def get_story():
+    if REQUEST_KEY_ID in request.args:
+        response_data = _get_story_by_id()
+    else:
+        response_data = _get_stories()
+    return create_response(True, response_data)
+
+
+def _get_stories():
+    stories = db.session.query().with_entities(Story.id, Story.title).all()
+    stories_dict = {}
+    for story in stories:
+        stories_dict[story.id] = story.title
+    response_data = stories_dict
+    return response_data
+
+
+def _get_story_by_id():
+    story = Story.query.get(request.args.get(REQUEST_KEY_ID))
+    paragraphs_order = json.loads(story.paragraphs)
+    paragraphs = []
+    for paragraph_id in paragraphs_order:
+        paragraph = Paragraph.query.get(paragraph_id)
+        paragraphs.append(paragraph.as_dict())
+    response_data = {RESPONSE_KEY_TITLE: story.title, RESPONSE_KEY_PARAGRAPHS: paragraphs}
+    return response_data
