@@ -5,7 +5,12 @@ from flask_login import login_required, current_user
 from werkzeug.exceptions import abort
 
 from app import db
-from app.models import Story, Paragraph
+from app.models import Story, Paragraph, User
+
+RESPONSE_KEY_NAME = "name"
+
+RESPONSE_KEY_OWNER = "owner"
+RESPONSE_KEY_OWNER_ID = "owner_id"
 
 RESPONSE_KEY_PARAGRAPHS = "paragraphs"
 
@@ -114,20 +119,23 @@ def get_story():
 
 
 def _get_stories():
-    stories = db.session.query().with_entities(Story.id, Story.title).all()
+    stories = db.session.query().with_entities(Story.id, Story.title, Story.owner_id).all()
     stories_dict = {}
     for story in stories:
-        stories_dict[story.id] = story.title
-    response_data = stories_dict
+        stories_dict[story.id] = {RESPONSE_KEY_TITLE: story.title, RESPONSE_KEY_OWNER: story.owner_id}
+    response_data = {RESPONSE_KEY_STORIES: stories_dict}
     return response_data
 
 
 def _get_story_by_id():
     story = Story.query.get(request.args.get(REQUEST_KEY_ID))
+    owner = User.query.get(story.owner_id)
     paragraphs_order = json.loads(story.paragraphs)
     paragraphs = []
     for paragraph_id in paragraphs_order:
         paragraph = Paragraph.query.get(paragraph_id)
         paragraphs.append(paragraph.as_dict())
-    response_data = {RESPONSE_KEY_TITLE: story.title, RESPONSE_KEY_PARAGRAPHS: paragraphs}
+    response_data = {RESPONSE_KEY_TITLE: story.title,
+                     RESPONSE_KEY_OWNER: {RESPONSE_KEY_ID: story.owner_id, RESPONSE_KEY_NAME: owner.name},
+                     RESPONSE_KEY_PARAGRAPHS: paragraphs}
     return response_data
