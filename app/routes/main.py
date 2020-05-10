@@ -39,7 +39,7 @@ RESPONSE_KEY_DATA = 'data'
 
 RESPONSE_KEY_SUCCESS = 'success'
 
-main = Blueprint('main', __name__)
+main_blue_print = Blueprint('main', __name__)
 
 
 ##
@@ -58,7 +58,7 @@ def create_response(success, data=None, message=None):
     return Response(json.dumps(resp), mimetype='application/json')
 
 
-@main.route('/story', methods=['POST'])
+@main_blue_print.route('/story', methods=['POST'])
 @login_required
 def begin_story():
     _validate_request_for_new_story()
@@ -68,15 +68,12 @@ def begin_story():
 
 
 def _add_new_paragraph(story):
-    paragraph = request.form.get(REQUEST_KEY_PARAGRAPH)
-    paragraph_entry = Paragraph(story.id, current_user.id, paragraph)
+    paragraph_entry = Paragraph(story.id, current_user.id, request.form.get(REQUEST_KEY_PARAGRAPH))
     db.session.add(paragraph_entry)
     db.session.commit()
-    story_paragraphs = story.paragraphs
-    if story_paragraphs is None:
-        story_paragraphs = []
-    story_paragraphs.append(paragraph_entry.id)
-    story.paragraphs = json.dumps(story_paragraphs)
+    story.paragraphs = [] if story.paragraphs is None else story.paragraphs
+    story.paragraphs.append(paragraph_entry.id)
+    story.paragraphs = json.dumps(story.paragraphs)
     db.session.commit()
     return paragraph_entry
 
@@ -108,7 +105,7 @@ def _add_new_story():
     return story
 
 
-@main.route('/story', methods=['GET'])
+@main_blue_print.route('/story', methods=['GET'])
 @login_required
 def get_story():
     if REQUEST_KEY_ID in request.args:
