@@ -19,6 +19,7 @@ RESPONSE_KEY_TITLE = "title"
 MESSAGE_MANDATORY_FIELD_WAS_NOT_SUPPLIED = "The mandatory field was not supplied: {0}"
 
 MAX_SIZE_TITLE = 64
+
 MAX_SIZE_PARAGRAPH = 256
 
 MESSAGE_CANNOT_BE_EMPTY = "The parameter {0} cannot be empty!"
@@ -26,6 +27,8 @@ MESSAGE_CANNOT_BE_EMPTY = "The parameter {0} cannot be empty!"
 REQUEST_KEY_TITLE = 'title'
 
 REQUEST_KEY_PARAGRAPH = 'paragraph'
+
+REQUEST_KEY_STORY_ID = "story_id"
 
 REQUEST_KEY_ID = "id"
 
@@ -63,17 +66,23 @@ def create_response(success, data=None, message=None):
 def begin_story():
     _validate_request_for_new_story()
     new_story = _add_new_story()
-    _add_new_paragraph(new_story)
+    _add_new_paragraph_to_story(new_story, request.form.get(REQUEST_KEY_PARAGRAPH))
     return create_response(True, {RESPONSE_KEY_ID: new_story.id})
 
 
-def _add_new_paragraph(story):
-    paragraph_entry = Paragraph(story.id, current_user.id, request.form.get(REQUEST_KEY_PARAGRAPH))
-    db.session.add(paragraph_entry)
+def _add_new_paragraph_to_story(story, paragraph_content=None):
+    paragraph_entry = _add_new_paragraph(paragraph_content, story.id)
+    story.paragraphs = '[]' if story.paragraphs is None else story.paragraphs
+    paragraphs_order = json.loads(story.paragraphs)
+    paragraphs_order.append(paragraph_entry.id)
+    story.paragraphs = json.dumps(paragraphs_order)
     db.session.commit()
-    story.paragraphs = [] if story.paragraphs is None else story.paragraphs
-    story.paragraphs.append(paragraph_entry.id)
-    story.paragraphs = json.dumps(story.paragraphs)
+    return paragraph_entry
+
+
+def _add_new_paragraph(paragraph_content, story_id):
+    paragraph_entry = Paragraph(story_id, current_user.id, paragraph_content)
+    db.session.add(paragraph_entry)
     db.session.commit()
     return paragraph_entry
 
@@ -103,6 +112,19 @@ def _add_new_story():
     db.session.add(story)
     db.session.commit()
     return story
+
+
+@main_blue_print.route('/paragraph', methods=['POST'])
+@login_required
+def suggest_new_paragraph():
+    story = Story.query.get(request.form.get(REQUEST_KEY_STORY_ID))
+    paragraph = _add_new_paragraph(request.form.get(REQUEST_KEY_PARAGRAPH), request.form.get(REQUEST_KEY_STORY_ID))
+    story.suggestions = '[]' if story.suggestions is None else story.suggestions
+    suggestions_order = json.loads(story.suggestions)
+    suggestions_order.append(paragraph.id)
+    story.suggestions = json.dumps(suggestions_order)
+    db.session.commit()
+    return create_response(True, {RESPONSE_KEY_ID: paragraph.id})
 
 
 @main_blue_print.route('/story', methods=['GET'])
