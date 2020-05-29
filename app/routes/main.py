@@ -114,7 +114,7 @@ def _add_new_story():
     return story
 
 
-@main_blue_print.route('/paragraph', methods=['POST'])
+@main_blue_print.route('/paragraph_suggestion', methods=['POST'])
 @login_required
 def suggest_new_paragraph():
     story = Story.query.get(request.form.get(REQUEST_KEY_STORY_ID))
@@ -125,6 +125,26 @@ def suggest_new_paragraph():
     story.suggestions = json.dumps(suggestions_order)
     db.session.commit()
     return create_response(True, {RESPONSE_KEY_ID: paragraph.id})
+
+
+@main_blue_print.route('/paragraph_suggestion', methods=['GET'])
+@login_required
+def get_paragraphs_suggestions():
+    suggestions = []
+    if REQUEST_KEY_STORY_ID in request.args:
+        suggestions = _get_suggested_paragraphs_by_story(suggestions)
+    else:
+        abort(400, description=MESSAGE_MANDATORY_FIELD_WAS_NOT_SUPPLIED.format(REQUEST_KEY_STORY_ID))
+    return create_response(True, suggestions)
+
+
+def _get_suggested_paragraphs_by_story(suggestions):
+    story = Story.query.get(request.args.get(REQUEST_KEY_STORY_ID))
+    suggestions_ids = json.loads(story.suggestions)
+    for suggestion_id in suggestions_ids:
+        suggestion = Paragraph.query.get(suggestion_id)
+        suggestions.append(suggestion.as_dict())
+    return suggestions
 
 
 @main_blue_print.route('/story', methods=['GET'])
