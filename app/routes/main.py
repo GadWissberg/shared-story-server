@@ -10,9 +10,12 @@ from app.models import Story, Paragraph, User
 RESPONSE_KEY_NAME = "name"
 
 RESPONSE_KEY_OWNER = "owner"
+
 RESPONSE_KEY_OWNER_ID = "owner_id"
 
 RESPONSE_KEY_PARAGRAPHS = "paragraphs"
+
+RESPONSE_KEY_SUGGESTIONS = "suggestions"
 
 RESPONSE_KEY_TITLE = "title"
 
@@ -174,7 +177,14 @@ def _get_story_by_id():
     for paragraph_id in paragraphs_order:
         paragraph = Paragraph.query.get(paragraph_id)
         paragraphs.append(paragraph.as_dict())
+    suggestions = []
+    if story.suggestions is not None:
+        suggestions_order = json.loads(story.suggestions)
+        for suggestion_id in suggestions_order:
+            paragraph = Paragraph.query.get(suggestion_id)
+            suggestions.append(paragraph.as_dict())
     response_data = {RESPONSE_KEY_TITLE: story.title,
                      RESPONSE_KEY_OWNER: {RESPONSE_KEY_ID: story.owner_id, RESPONSE_KEY_NAME: owner.name},
-                     RESPONSE_KEY_PARAGRAPHS: paragraphs}
+                     RESPONSE_KEY_PARAGRAPHS: paragraphs,
+                     RESPONSE_KEY_SUGGESTIONS: suggestions}
     return response_data
