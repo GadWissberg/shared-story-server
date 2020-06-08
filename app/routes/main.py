@@ -7,6 +7,8 @@ from werkzeug.exceptions import abort
 from app import db
 from app.models import Story, Paragraph, User
 
+MESSAGE_STORY_WAS_NOT_FOUND = "Story with id {0} was not found"
+
 RESPONSE_KEY_NAME = "name"
 
 RESPONSE_KEY_OWNER = "owner"
@@ -33,9 +35,7 @@ REQUEST_KEY_PARAGRAPH = 'paragraph'
 
 REQUEST_KEY_STORY_ID = "story_id"
 
-REQUEST_KEY_ID = "id"
-
-RESPONSE_KEY_ID = "id"
+KEY_ID = "id"
 
 RESPONSE_KEY_MESSAGE = "message"
 
@@ -70,7 +70,7 @@ def begin_story():
     _validate_request_for_new_story()
     new_story = _add_new_story()
     _add_new_paragraph_to_story(new_story, request.form.get(REQUEST_KEY_PARAGRAPH))
-    return create_response(True, {RESPONSE_KEY_ID: new_story.id})
+    return create_response(True, {KEY_ID: new_story.id})
 
 
 def _add_new_paragraph_to_story(story, paragraph_content=None):
@@ -120,14 +120,22 @@ def _add_new_story():
 @main_blue_print.route('/paragraph_suggestion', methods=['POST'])
 @login_required
 def suggest_new_paragraph():
-    story = Story.query.get(request.form.get(REQUEST_KEY_STORY_ID))
-    paragraph = _add_new_paragraph(request.form.get(REQUEST_KEY_PARAGRAPH), request.form.get(REQUEST_KEY_STORY_ID))
+    story_id = request.form.get(REQUEST_KEY_STORY_ID)
+    story = Story.query.get(story_id)
+    if story is None:
+        abort(404, description=MESSAGE_STORY_WAS_NOT_FOUND.format(story_id))
+    paragraph = _add_new_suggestion_to_story(story, story_id)
+    db.session.commit()
+    return create_response(True, {KEY_ID: paragraph.id})
+
+
+def _add_new_suggestion_to_story(story, story_id):
+    paragraph = _add_new_paragraph(request.form.get(REQUEST_KEY_PARAGRAPH), story_id)
     story.suggestions = '[]' if story.suggestions is None else story.suggestions
     suggestions_order = json.loads(story.suggestions)
     suggestions_order.append(paragraph.id)
     story.suggestions = json.dumps(suggestions_order)
-    db.session.commit()
-    return create_response(True, {RESPONSE_KEY_ID: paragraph.id})
+    return paragraph
 
 
 @main_blue_print.route('/paragraph_suggestion', methods=['GET'])
@@ -153,7 +161,7 @@ def _get_suggested_paragraphs_by_story(suggestions):
 @main_blue_print.route('/story', methods=['GET'])
 @login_required
 def get_story():
-    if REQUEST_KEY_ID in request.args:
+    if KEY_ID in request.args:
         response_data = _get_story_by_id()
     else:
         response_data = _get_stories()
@@ -170,7 +178,7 @@ def _get_stories():
 
 
 def _get_story_by_id():
-    story = Story.query.get(request.args.get(REQUEST_KEY_ID))
+    story = Story.query.get(request.args.get(KEY_ID))
     owner = User.query.get(story.owner_id)
     paragraphs_order = json.loads(story.paragraphs)
     paragraphs = []
@@ -184,7 +192,7 @@ def _get_story_by_id():
             paragraph = Paragraph.query.get(suggestion_id)
             suggestions.append(paragraph.as_dict())
     response_data = {RESPONSE_KEY_TITLE: story.title,
-                     RESPONSE_KEY_OWNER: {RESPONSE_KEY_ID: story.owner_id, RESPONSE_KEY_NAME: owner.name},
+                     RESPONSE_KEY_OWNER: {KEY_ID: story.owner_id, RESPONSE_KEY_NAME: owner.name},
                      RESPONSE_KEY_PARAGRAPHS: paragraphs,
                      RESPONSE_KEY_SUGGESTIONS: suggestions}
     return response_data

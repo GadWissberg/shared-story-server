@@ -9,7 +9,6 @@ app.config['SECRET_KEY'] = '9OLWxND4o83j4K4iuopO'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 db = SQLAlchemy()
 login_manager = LoginManager(app)
-login_manager.login_view = 'auth.login'
 db.init_app(app)
 login_manager.init_app(app)
 
