@@ -15,6 +15,8 @@ RESPONSE_KEY_OWNER = "owner"
 
 RESPONSE_KEY_OWNER_ID = "owner_id"
 
+RESPONSE_KEY_OWNER_NAME = "owner_name"
+
 RESPONSE_KEY_PARAGRAPHS = "paragraphs"
 
 RESPONSE_KEY_SUGGESTIONS = "suggestions"
@@ -170,11 +172,12 @@ def get_story():
 
 def _get_stories():
     stories = db.session.query().with_entities(Story.id, Story.title, Story.owner_id).all()
+    owners = db.session.query().with_entities(User.id, User.name).all()
     stories_dict = {}
     for story in stories:
-        stories_dict[story.id] = {RESPONSE_KEY_TITLE: story.title, RESPONSE_KEY_OWNER: story.owner_id}
-    response_data = {RESPONSE_KEY_STORIES: stories_dict}
-    return response_data
+        owner = dict(zip(owners[story.owner_id].keys(), owners[story.owner_id]))
+        stories_dict[story.id] = {RESPONSE_KEY_TITLE: story.title, RESPONSE_KEY_OWNER: owner}
+    return {RESPONSE_KEY_STORIES: stories_dict}
 
 
 def _get_story_by_id():

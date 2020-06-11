@@ -1,4 +1,4 @@
-from flask import Blueprint, request, redirect, url_for, flash
+from flask import Blueprint, request
 from flask_login import login_user, login_required, logout_user
 from werkzeug.exceptions import abort
 from werkzeug.security import generate_password_hash, check_password_hash
@@ -6,6 +6,8 @@ from werkzeug.security import generate_password_hash, check_password_hash
 from app import db
 from app.models import User
 from app.routes.main import create_response
+
+MESSAGE_EMAIL_TAKEN = 'Email address already exists'
 
 ENCRYPT_METHOD = 'sha256'
 
@@ -37,12 +39,11 @@ def signup():
     password = request.form.get('password')
     user = User.query.filter_by(email=email).first()
     if user:
-        flash('Email address already exists')
-        return redirect(url_for('auth.signup'))
+        return abort(409, description=MESSAGE_EMAIL_TAKEN)
     new_user = User(email=email, name=name, password=generate_password_hash(password, method=ENCRYPT_METHOD))
     db.session.add(new_user)
     db.session.commit()
-    return redirect(url_for('auth.login'))
+    return create_response(True, message=(MESSAGE_WELCOME.format(new_user.name)))
 
 
 @auth_blue_print.route('/logout')
