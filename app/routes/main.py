@@ -17,6 +17,8 @@ RESPONSE_KEY_OWNER_ID = "owner_id"
 
 RESPONSE_KEY_OWNER_NAME = "owner_name"
 
+RESPONSE_KEY_FIRST_PARAGRAPH = "first_paragraph"
+
 RESPONSE_KEY_PARAGRAPHS = "paragraphs"
 
 RESPONSE_KEY_SUGGESTIONS = "suggestions"
@@ -171,13 +173,36 @@ def get_story():
 
 
 def _get_stories():
-    stories = db.session.query().with_entities(Story.id, Story.title, Story.owner_id).all()
-    owners = db.session.query().with_entities(User.id, User.name).all()
+    stories = db.session.query().with_entities(Story.id, Story.title, Story.owner_id, Story.paragraphs).all()
+    owners_dict = _get_owners_as_dict()
+    stories_dict = _get_stories_as_dict(owners_dict, stories)
+    return {RESPONSE_KEY_STORIES: stories_dict}
+
+
+def _get_stories_as_dict(owners_dict, stories):
+    paragraphs_to_fetch = []
     stories_dict = {}
     for story in stories:
-        owner = dict(zip(owners[story.owner_id].keys(), owners[story.owner_id]))
-        stories_dict[story.id] = {RESPONSE_KEY_TITLE: story.title, RESPONSE_KEY_OWNER: owner}
-    return {RESPONSE_KEY_STORIES: stories_dict}
+        _add_story_to_stories_dict(owners_dict, paragraphs_to_fetch, stories_dict, story)
+    paragraphs = db.session.query(Paragraph).filter(Paragraph.id.in_(paragraphs_to_fetch)).all()
+    for paragraph in paragraphs:
+        stories_dict[paragraph.story_id][RESPONSE_KEY_FIRST_PARAGRAPH] = paragraph.content
+    return stories_dict
+
+
+def _add_story_to_stories_dict(owners_dict, paragraphs_to_fetch, stories_dict, story):
+    owner = dict(zip(owners_dict[story.owner_id].keys(), owners_dict[story.owner_id]))
+    stories_dict[story.id] = {RESPONSE_KEY_TITLE: story.title, RESPONSE_KEY_OWNER: owner}
+    paragraphs = json.loads(story.paragraphs)
+    paragraphs_to_fetch.append(paragraphs[0])
+
+
+def _get_owners_as_dict():
+    owners = db.session.query().with_entities(User.id, User.name).all()
+    owners_dict = {}
+    for owner in owners:
+        owners_dict[owner.id] = owner
+    return owners_dict
 
 
 def _get_story_by_id():
