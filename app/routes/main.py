@@ -29,9 +29,11 @@ MESSAGE_MANDATORY_FIELD_WAS_NOT_SUPPLIED = "The mandatory field was not supplied
 
 MAX_SIZE_TITLE = 64
 
-MAX_SIZE_PARAGRAPH = 256
+MAX_SIZE_PARAGRAPH = 600
 
 MESSAGE_CANNOT_BE_EMPTY = "The parameter {0} cannot be empty!"
+
+MESSAGE_TOO_LONG = "The given {0} exceeds the max-size: {1}"
 
 REQUEST_KEY_TITLE = 'title'
 
@@ -109,7 +111,7 @@ def _check_parameter_length(parameter, max_size):
     elif len(request.form.get(parameter)) == 0:
         failure_message = MESSAGE_CANNOT_BE_EMPTY.format(parameter)
     elif len(request.form.get(parameter)) > max_size:
-        failure_message = MESSAGE_CANNOT_BE_EMPTY.format(parameter)
+        failure_message = MESSAGE_TOO_LONG.format(parameter, max_size)
     return failure_message
 
 
@@ -186,15 +188,17 @@ def _get_stories_as_dict(owners_dict, stories):
         _add_story_to_stories_dict(owners_dict, paragraphs_to_fetch, stories_dict, story)
     paragraphs = db.session.query(Paragraph).filter(Paragraph.id.in_(paragraphs_to_fetch)).all()
     for paragraph in paragraphs:
-        stories_dict[paragraph.story_id][RESPONSE_KEY_FIRST_PARAGRAPH] = paragraph.content
+        stories_dict[paragraph.story_id][RESPONSE_KEY_FIRST_PARAGRAPH] = paragraph.as_dict()
     return stories_dict
 
 
 def _add_story_to_stories_dict(owners_dict, paragraphs_to_fetch, stories_dict, story):
     owner = dict(zip(owners_dict[story.owner_id].keys(), owners_dict[story.owner_id]))
     stories_dict[story.id] = {RESPONSE_KEY_TITLE: story.title, RESPONSE_KEY_OWNER: owner}
-    paragraphs = json.loads(story.paragraphs)
-    paragraphs_to_fetch.append(paragraphs[0])
+    story_paragraphs = story.paragraphs
+    if story_paragraphs is not None:
+        paragraphs = json.loads(story_paragraphs)
+        paragraphs_to_fetch.append(paragraphs[0])
 
 
 def _get_owners_as_dict():
