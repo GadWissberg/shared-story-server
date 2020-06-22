@@ -7,8 +7,6 @@ class Config(object):
     DEBUG = False
     TESTING = False
     CSRF_ENABLED = True
-    SECRET_KEY = '9OLWxND4o83j4K4iuopO'
-    SQLALCHEMY_DATABASE_URI = "postgresql://postgres:fatcow@localhost/mututale"
 
 
 class ProductionConfig(Config):

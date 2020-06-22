@@ -1,11 +1,15 @@
+import json
+
 from flask import Flask
 from flask_login import LoginManager
 from flask_sqlalchemy import SQLAlchemy
 
 app = Flask(__name__)
 app.debug = True
-app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql://postgres:fatcow@localhost/mututale'
-app.config['SECRET_KEY'] = '9OLWxND4o83j4K4iuopO'
+with open('secrets.json', 'r') as file:
+    secrets = json.load(file)
+app.config['SQLALCHEMY_DATABASE_URI'] = secrets['sqlalchemy_database_uri']
+app.config['SECRET_KEY'] = secrets['secret']
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 db = SQLAlchemy()
 login_manager = LoginManager(app)
