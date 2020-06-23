@@ -29,7 +29,7 @@ MESSAGE_MANDATORY_FIELD_WAS_NOT_SUPPLIED = "The mandatory field was not supplied
 
 MAX_SIZE_TITLE = 64
 
-MAX_SIZE_PARAGRAPH = 600
+MAX_SIZE_PARAGRAPH = 1200
 
 MESSAGE_CANNOT_BE_EMPTY = "The parameter {0} cannot be empty!"
 
