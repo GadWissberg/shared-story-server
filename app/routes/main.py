@@ -21,6 +21,8 @@ RESPONSE_KEY_FIRST_PARAGRAPH = "first_paragraph"
 
 RESPONSE_KEY_PARAGRAPHS = "paragraphs"
 
+RESPONSE_KEY_PARTICIPANTS = "participants"
+
 RESPONSE_KEY_SUGGESTIONS = "suggestions"
 
 RESPONSE_KEY_TITLE = "title"
@@ -214,9 +216,11 @@ def _get_story_by_id():
     owner = User.query.get(story.owner_id)
     paragraphs_order = json.loads(story.paragraphs)
     paragraphs = []
+    participants_ids = set()
     for paragraph_id in paragraphs_order:
         paragraph = Paragraph.query.get(paragraph_id)
         paragraphs.append(paragraph.as_dict())
+        participants_ids.add(paragraph.owner_id)
     suggestions = []
     if story.suggestions is not None:
         suggestions_order = json.loads(story.suggestions)
@@ -227,4 +231,11 @@ def _get_story_by_id():
                      RESPONSE_KEY_OWNER: {KEY_ID: story.owner_id, RESPONSE_KEY_NAME: owner.name},
                      RESPONSE_KEY_PARAGRAPHS: paragraphs,
                      RESPONSE_KEY_SUGGESTIONS: suggestions}
+    if len(participants_ids) > 0:
+        participants = []
+        participants_objects = db.session.query(User).filter(User.id.in_(participants_ids))
+        for participant in participants_objects:
+            participants.append({KEY_ID: participant.id, RESPONSE_KEY_NAME: participant.name})
+        if len(participants) > 0:
+            response_data[RESPONSE_KEY_PARTICIPANTS] = participants
     return response_data
