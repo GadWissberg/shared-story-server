@@ -5,9 +5,15 @@ from flask_login import login_required, current_user
 from werkzeug.exceptions import abort
 
 from app import db
-from app.models import Story, Paragraph, User
+from app.models import Story, Paragraph, User, Vote
 
-MESSAGE_STORY_WAS_NOT_FOUND = "Story with id {0} was not found"
+MESSAGE_ALREADY_VOTED = "You have already voted to paragraph #{0}"
+
+MESSAGE_NOT_VOTEABLE = "Paragraph #{0} is closed for votes."
+
+MESSAGE_VOTE_SUCCESSFULLY = "Vote has been recorded to paragraph #{0}"
+
+MESSAGE_RES_WAS_NOT_FOUND = "{0} with id #{1} was not found."
 
 RESPONSE_KEY_NAME = "name"
 
@@ -131,7 +137,7 @@ def suggest_new_paragraph():
     story_id = request.form.get(REQUEST_KEY_STORY_ID)
     story = Story.query.get(story_id)
     if story is None:
-        abort(404, description=MESSAGE_STORY_WAS_NOT_FOUND.format(story_id))
+        abort(404, description=MESSAGE_RES_WAS_NOT_FOUND.format(Story.__class__.__name__, story_id))
     paragraph = _add_new_suggestion_to_story(story, story_id)
     db.session.commit()
     return create_response(True, {KEY_ID: paragraph.id})
@@ -239,3 +245,35 @@ def _get_story_by_id():
         if len(participants) > 0:
             response_data[RESPONSE_KEY_PARTICIPANTS] = participants
     return response_data
+
+
+@main_blue_print.route('/vote', methods=['PUT'])
+@login_required
+def vote():
+    paragraph_id = request.form.get(KEY_ID)
+    paragraph = Paragraph.query.filter_by(id=paragraph_id).first()
+    response = None
+    if paragraph:
+        response = _add_vote_to_voteable_paragraph(paragraph)
+    else:
+        abort(404, description=MESSAGE_RES_WAS_NOT_FOUND.format(Paragraph.__class__.__name__, paragraph_id))
+    return response
+
+
+def _add_vote_to_voteable_paragraph(paragraph):
+    if paragraph.voteable:
+        if not Vote.query.filter_by(user_id=current_user.id, paragraph_id=paragraph.id).first():
+            response = _add_vote(paragraph.id, current_user.id)
+        else:
+            response = create_response(False, message=MESSAGE_ALREADY_VOTED.format(paragraph.id))
+    else:
+        response = create_response(False, message=MESSAGE_NOT_VOTEABLE.format(paragraph.id))
+    return response
+
+
+def _add_vote(paragraph_id, user_id):
+    vote_entry = Vote(user_id=user_id, paragraph_id=paragraph_id)
+    db.session.add(vote_entry)
+    db.session.commit()
+    response = create_response(True, message=MESSAGE_VOTE_SUCCESSFULLY.format(paragraph_id))
+    return response
