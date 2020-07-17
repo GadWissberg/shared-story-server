@@ -7,6 +7,8 @@ from werkzeug.exceptions import abort
 from app import db
 from app.models import Story, Paragraph, User, Vote
 
+RESPONSE_KEY_VOTES = "votes"
+
 MESSAGE_ALREADY_VOTED = "You have already voted to paragraph #{0}"
 
 MESSAGE_NOT_VOTEABLE = "Paragraph #{0} is closed for votes."
@@ -62,11 +64,6 @@ RESPONSE_KEY_SUCCESS = 'success'
 main_blue_print = Blueprint('main', __name__)
 
 
-##
-# @param success Whether response is success.
-# @param data Additional optional dictionary.
-# @param message Additional message.
-# @return A flask wrapper response
 def create_response(success, data=None, message=None):
     resp = {
         RESPONSE_KEY_SUCCESS: success
@@ -227,12 +224,17 @@ def _get_story_by_id():
         paragraph = Paragraph.query.get(paragraph_id)
         paragraphs.append(paragraph.as_dict())
         participants_ids.add(paragraph.owner_id)
+
     suggestions = []
     if story.suggestions is not None:
         suggestions_order = json.loads(story.suggestions)
         for suggestion_id in suggestions_order:
             paragraph = Paragraph.query.get(suggestion_id)
-            suggestions.append(paragraph.as_dict())
+            number_of_votes = Vote.query.filter(Vote.paragraph_id == suggestion_id).count()
+            as_dict = paragraph.as_dict()
+            as_dict[RESPONSE_KEY_VOTES] = number_of_votes
+            suggestions.append(as_dict)
+
     response_data = {RESPONSE_KEY_TITLE: story.title,
                      RESPONSE_KEY_OWNER: {KEY_ID: story.owner_id, RESPONSE_KEY_NAME: owner.name},
                      RESPONSE_KEY_PARAGRAPHS: paragraphs,
