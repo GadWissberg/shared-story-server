@@ -1,4 +1,5 @@
 import json
+import time
 
 from flask import Blueprint, request, Response
 from flask_login import login_required, current_user
@@ -6,6 +7,8 @@ from werkzeug.exceptions import abort
 
 from app import db
 from app.models import Story, Paragraph, User, Vote
+
+RELATIVE_DEADLINE = 2
 
 RESPONSE_KEY_VOTES = "votes"
 
@@ -135,9 +138,15 @@ def suggest_new_paragraph():
     story = Story.query.get(story_id)
     if story is None:
         abort(404, description=MESSAGE_RES_WAS_NOT_FOUND.format(Story.__class__.__name__, story_id))
+    _set_deadline(story)
     paragraph = _add_new_suggestion_to_story(story, story_id)
     db.session.commit()
     return create_response(True, {KEY_ID: paragraph.id})
+
+
+def _set_deadline(story):
+    if story.suggestions is None or len(story.suggestions) == 0:
+        story.deadline = time.time() + RELATIVE_DEADLINE * 24 * 60 * 60
 
 
 def _add_new_suggestion_to_story(story, story_id):

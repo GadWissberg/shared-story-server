@@ -25,6 +25,7 @@ class Story(db.Model):
     owner_id = db.Column(db.Integer, nullable=False, unique=True)
     paragraphs = db.Column(db.String(), nullable=True)
     suggestions = db.Column(db.String(), nullable=True)
+    deadline = db.Column(db.Integer, nullable=True)
 
     def __init__(self, title, owner_id):
         self.title = title
