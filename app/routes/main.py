@@ -32,6 +32,8 @@ RESPONSE_KEY_FIRST_PARAGRAPH = "first_paragraph"
 
 RESPONSE_KEY_PARAGRAPHS = "paragraphs"
 
+RESPONSE_KEY_DEADLINE = "deadline"
+
 RESPONSE_KEY_PARTICIPANTS = "participants"
 
 RESPONSE_KEY_SUGGESTIONS = "suggestions"
@@ -145,7 +147,8 @@ def suggest_new_paragraph():
 
 
 def _set_deadline(story):
-    if story.suggestions is None or len(story.suggestions) == 0:
+    dl = story.deadline
+    if story.suggestions is None or len(story.suggestions) == 0 or dl is None or dl - time.time() <= 0:
         story.deadline = time.time() + RELATIVE_DEADLINE * 24 * 60 * 60
 
 
@@ -243,11 +246,19 @@ def _get_story_by_id():
             as_dict = paragraph.as_dict()
             as_dict[RESPONSE_KEY_VOTES] = number_of_votes
             suggestions.append(as_dict)
+            participants_ids.add(paragraph.owner_id)
 
     response_data = {RESPONSE_KEY_TITLE: story.title,
                      RESPONSE_KEY_OWNER: {KEY_ID: story.owner_id, RESPONSE_KEY_NAME: owner.name},
-                     RESPONSE_KEY_PARAGRAPHS: paragraphs,
-                     RESPONSE_KEY_SUGGESTIONS: suggestions}
+                     RESPONSE_KEY_PARAGRAPHS: paragraphs}
+
+    if len(suggestions) > 0:
+        response_data[RESPONSE_KEY_SUGGESTIONS] = suggestions
+
+    deadline = story.deadline
+    if deadline is not None:
+        response_data[RESPONSE_KEY_DEADLINE] = deadline
+
     if len(participants_ids) > 0:
         participants = []
         participants_objects = db.session.query(User).filter(User.id.in_(participants_ids))
