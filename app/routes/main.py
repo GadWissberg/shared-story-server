@@ -85,22 +85,27 @@ def create_response(success, data=None, message=None):
 def begin_story():
     _validate_request_for_new_story()
     new_story = _add_new_story()
-    _add_new_paragraph_to_story(new_story, request.form.get(REQUEST_KEY_PARAGRAPH))
+    _create_and_add_new_paragraph_to_story(new_story, request.form.get(REQUEST_KEY_PARAGRAPH))
     return create_response(True, {KEY_ID: new_story.id})
 
 
-def _add_new_paragraph_to_story(story, paragraph_content=None):
-    paragraph_entry = _add_new_paragraph(paragraph_content, story.id)
+def _create_and_add_new_paragraph_to_story(story, paragraph_content=None):
+    paragraph_entry = _create_and_add_to_db_new_paragraph(paragraph_content, story.id)
+    _add_paragraph_to_story(paragraph_entry, story)
+    return paragraph_entry
+
+
+def _add_paragraph_to_story(paragraph_entry, story):
     story.paragraphs = '[]' if story.paragraphs is None else story.paragraphs
     paragraphs_order = json.loads(story.paragraphs)
     paragraphs_order.append(paragraph_entry.id)
     story.paragraphs = json.dumps(paragraphs_order)
     db.session.commit()
-    return paragraph_entry
 
 
-def _add_new_paragraph(paragraph_content, story_id):
+def _create_and_add_to_db_new_paragraph(paragraph_content, story_id, voteable=False):
     paragraph_entry = Paragraph(story_id, current_user.id, paragraph_content)
+    paragraph_entry.voteable = voteable
     db.session.add(paragraph_entry)
     db.session.commit()
     return paragraph_entry
@@ -141,19 +146,22 @@ def suggest_new_paragraph():
     if story is None:
         abort(404, description=MESSAGE_RES_WAS_NOT_FOUND.format(Story.__class__.__name__, story_id))
     _set_deadline(story)
-    paragraph = _add_new_suggestion_to_story(story, story_id)
+    paragraph = _add_new_suggestion_to_story(story, story_id, True)
     db.session.commit()
     return create_response(True, {KEY_ID: paragraph.id})
 
 
-def _set_deadline(story):
+def _set_deadline(story, commit=False):
     dl = story.deadline
     if story.suggestions is None or len(story.suggestions) == 0 or dl is None or dl - time.time() <= 0:
         story.deadline = time.time() + RELATIVE_DEADLINE * 24 * 60 * 60
+        if commit:
+            db.session.commit()
+    return story.deadline
 
 
-def _add_new_suggestion_to_story(story, story_id):
-    paragraph = _add_new_paragraph(request.form.get(REQUEST_KEY_PARAGRAPH), story_id)
+def _add_new_suggestion_to_story(story, story_id, voteable=False):
+    paragraph = _create_and_add_to_db_new_paragraph(request.form.get(REQUEST_KEY_PARAGRAPH), story_id, voteable)
     story.suggestions = '[]' if story.suggestions is None else story.suggestions
     suggestions_order = json.loads(story.suggestions)
     suggestions_order.append(paragraph.id)
@@ -237,27 +245,49 @@ def _get_story_by_id():
         paragraphs.append(paragraph.as_dict())
         participants_ids.add(paragraph.owner_id)
 
-    suggestions = []
-    if story.suggestions is not None:
-        suggestions_order = json.loads(story.suggestions)
-        for suggestion_id in suggestions_order:
-            paragraph = Paragraph.query.get(suggestion_id)
-            number_of_votes = Vote.query.filter(Vote.paragraph_id == suggestion_id).count()
-            as_dict = paragraph.as_dict()
-            as_dict[RESPONSE_KEY_VOTES] = number_of_votes
-            suggestions.append(as_dict)
-            participants_ids.add(paragraph.owner_id)
-
     response_data = {RESPONSE_KEY_TITLE: story.title,
                      RESPONSE_KEY_OWNER: {KEY_ID: story.owner_id, RESPONSE_KEY_NAME: owner.name},
                      RESPONSE_KEY_PARAGRAPHS: paragraphs}
 
-    if len(suggestions) > 0:
-        response_data[RESPONSE_KEY_SUGGESTIONS] = suggestions
+    if story.suggestions is not None:
+        deadline = story.deadline
+        if deadline is not None:
+            if deadline - time.time() > 0:
+                response_data[RESPONSE_KEY_DEADLINE] = deadline
+                suggestions = _get_suggestions(story, participants_ids)
+                response_data[RESPONSE_KEY_SUGGESTIONS] = suggestions
+            else:
+                votes_counter = {}
+                max_id = -1
+                max_value = 0
+                max_counter = 1
+                suggestions_order = json.loads(story.suggestions)
 
-    deadline = story.deadline
-    if deadline is not None:
-        response_data[RESPONSE_KEY_DEADLINE] = deadline
+                for suggestion_id in suggestions_order:
+                    number_of_votes = Vote.query.filter(Vote.paragraph_id == suggestion_id).count()
+
+                    max_id = suggestion_id if max_id == -1 else max_id
+                    if max_value == number_of_votes:
+                        max_counter += 1
+                    if max_value < number_of_votes:
+                        max_value = number_of_votes
+                        max_id = suggestion_id
+                        max_counter = 1
+                    votes_counter[suggestion_id] = number_of_votes
+
+                if max_counter > 1:
+                    response_data[RESPONSE_KEY_DEADLINE] = _set_deadline(story, True)
+                    suggestions = _get_suggestions(story, participants_ids)
+                    response_data[RESPONSE_KEY_SUGGESTIONS] = suggestions
+                else:
+                    if max_id > -1:
+                        paragraph = Paragraph.query.get(max_id)
+                        _add_paragraph_to_story(paragraph, story)
+                        story.deadline = None
+                        story.suggestions = None
+                        paragraph.voteable = False
+                        db.session.commit()
+                        paragraphs.append(paragraph.as_dict())
 
     if len(participants_ids) > 0:
         participants = []
@@ -266,7 +296,21 @@ def _get_story_by_id():
             participants.append({KEY_ID: participant.id, RESPONSE_KEY_NAME: participant.name})
         if len(participants) > 0:
             response_data[RESPONSE_KEY_PARTICIPANTS] = participants
+
     return response_data
+
+
+def _get_suggestions(story, participants_ids):
+    suggestions_order = json.loads(story.suggestions)
+    suggestions = []
+    for suggestion_id in suggestions_order:
+        paragraph = Paragraph.query.get(suggestion_id)
+        as_dict = paragraph.as_dict()
+        as_dict[RESPONSE_KEY_VOTES] = Vote.query.filter(Vote.paragraph_id == suggestion_id).count()
+        suggestions.append(as_dict)
+        if participants_ids is not None:
+            participants_ids.add(paragraph.owner_id)
+    return suggestions
 
 
 @main_blue_print.route('/vote', methods=['PUT'])
