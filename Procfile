@@ -1,1 +1,1 @@
-web: bundle exec python server -p $PORT
+web: gunicorn hello:app --log-file=-
