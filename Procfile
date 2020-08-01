@@ -1,1 +1,1 @@
-web: gunicorn shared-story-server:app --log-file=-
+web: gunicorn ourtale:app --log-file=-
