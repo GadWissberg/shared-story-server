@@ -1,1 +1,1 @@
-web: gunicorn __init__:ourtale --log-file=-
+web: gunicorn __init__:app --log-file=-
