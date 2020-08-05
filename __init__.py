@@ -1,4 +1,4 @@
-import json
+import os
 
 from flask import Flask
 from flask_login import LoginManager
@@ -6,10 +6,9 @@ from flask_sqlalchemy import SQLAlchemy
 
 app = Flask(__name__)
 app.debug = True
-with open('secrets.json', 'r') as file:
-    secrets = json.load(file)
-app.config['SQLALCHEMY_DATABASE_URI'] = secrets['sqlalchemy_database_uri']
-app.config['SECRET_KEY'] = secrets['secret']
+
+app.config['SQLALCHEMY_DATABASE_URI'] = os.environ['SQLALCHEMY_DATABASE_URI']
+app.config['SECRET_KEY'] = os.environ['SECRET']
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 db = SQLAlchemy()
 login_manager = LoginManager(app)
