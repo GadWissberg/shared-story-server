@@ -1,6 +1,6 @@
 import flask
 
-from app.routes.main import create_response
+from ourtale.routes.main import create_response
 
 blueprint = flask.Blueprint('error_handlers', __name__)
 
