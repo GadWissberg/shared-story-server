@@ -1,6 +1,6 @@
 from flask_login import UserMixin
 
-from . import db
+from app.app import db
 
 PARAGRAPH_SIZE_LIMIT = 512
 
