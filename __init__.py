@@ -27,10 +27,10 @@ def load_user(user_id):
 
 from .models import User
 
-from ourtale.routes.auth import auth_blue_print as auth_blueprint, auth_blue_print
+from app.routes.auth import auth_blue_print as auth_blueprint, auth_blue_print
 
 app.register_blueprint(auth_blueprint)
 
-from ourtale.routes.main import main_blue_print as main_blueprint
+from app.routes.main import main_blue_print as main_blueprint
 
 app.register_blueprint(main_blueprint)
