@@ -15,7 +15,7 @@ login_manager = LoginManager(app)
 db.init_app(app)
 login_manager.init_app(app)
 
-from . import error_handlers
+from app.main import error_handlers
 
 app.register_blueprint(error_handlers.blueprint)
 
