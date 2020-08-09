@@ -15,7 +15,7 @@ login_manager = LoginManager(app)
 db.init_app(app)
 login_manager.init_app(app)
 
-from app.ourtale import error_handlers
+from . import error_handlers
 
 app.register_blueprint(error_handlers.blueprint)
 
@@ -27,10 +27,10 @@ def load_user(user_id):
 
 from .models import User
 
-from app.ourtale.routes.auth import auth_blue_print as auth_blueprint
+from app.routes.auth import auth_blue_print as auth_blueprint
 
 app.register_blueprint(auth_blueprint)
 
-from app.ourtale.routes.main import main_blue_print as main_blueprint
+from app.routes.main import main_blue_print as main_blueprint
 
 app.register_blueprint(main_blueprint)

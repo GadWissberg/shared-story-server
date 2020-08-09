@@ -3,9 +3,9 @@ from flask_login import login_user, login_required, logout_user
 from werkzeug.exceptions import abort
 from werkzeug.security import generate_password_hash, check_password_hash
 
-from app.ourtale.app import db
-from app.ourtale.models import User
-from app.ourtale.routes.main import create_response
+from app.app import db
+from app.models import User
+from app.routes.main import create_response
 
 MESSAGE_EMAIL_TAKEN = 'Email address already exists'
 
