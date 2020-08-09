@@ -2,14 +2,13 @@ import unittest
 
 from flask import Flask
 from flask_testing import TestCase
-from sqlalchemy import exists
-from werkzeug.security import generate_password_hash
-
 from ourtale import User, db, login_manager
 from ourtale.models import Story, Paragraph
 from ourtale.routes import auth, main
 from ourtale.routes.auth import auth_blue_print, ENCRYPT_METHOD
 from ourtale.routes.main import create_response, RESPONSE_KEY_SUCCESS, RESPONSE_KEY_DATA, main_blue_print, KEY_ID
+from sqlalchemy import exists
+from werkzeug.security import generate_password_hash
 
 OWNER_ID = 1
 
