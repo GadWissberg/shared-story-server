@@ -2,4 +2,4 @@
 /.idea
 *.log
 /app/secrets.json
-/secrets.json
+/ourtale/secrets.json

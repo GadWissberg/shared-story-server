@@ -5,8 +5,8 @@ from flask import Blueprint, request, Response
 from flask_login import login_required, current_user
 from werkzeug.exceptions import abort
 
-from app.app import db
-from app.models import Story, Paragraph, User, Vote
+from app.ourtale.app import db
+from app.ourtale.models import Story, Paragraph, User, Vote
 
 RELATIVE_DEADLINE = 2
 
