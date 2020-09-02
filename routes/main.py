@@ -1,16 +1,17 @@
 import json
 import time
 
-from flask import Blueprint, request, Response
+from flask import Blueprint, request
 from flask_login import login_required, current_user
 from werkzeug.exceptions import abort
 
-from app.app import db
+from app.db_handler import db
 from app.models import Story, Paragraph, User, Vote
+from app.utils import create_response, RESPONSE_KEY_STORIES, RESPONSE_KEY_FIRST_PARAGRAPH, RESPONSE_KEY_TITLE, \
+    RESPONSE_KEY_OWNER, RESPONSE_KEY_NAME, RESPONSE_KEY_PARAGRAPHS, RESPONSE_KEY_DEADLINE, RESPONSE_KEY_SUGGESTIONS, \
+    RESPONSE_KEY_PARTICIPANTS, RESPONSE_KEY_VOTES
 
 RELATIVE_DEADLINE = 2
-
-RESPONSE_KEY_VOTES = "votes"
 
 MESSAGE_ALREADY_VOTED = "You have already voted to paragraph #{0}"
 
@@ -19,27 +20,6 @@ MESSAGE_NOT_VOTEABLE = "Paragraph #{0} is closed for votes."
 MESSAGE_VOTE_SUCCESSFULLY = "Vote has been recorded to paragraph #{0}"
 
 MESSAGE_RES_WAS_NOT_FOUND = "{0} with id #{1} was not found."
-
-RESPONSE_KEY_NAME = "name"
-
-RESPONSE_KEY_OWNER = "owner"
-
-RESPONSE_KEY_OWNER_ID = "owner_id"
-
-RESPONSE_KEY_OWNER_NAME = "owner_name"
-
-RESPONSE_KEY_FIRST_PARAGRAPH = "first_paragraph"
-
-RESPONSE_KEY_PARAGRAPHS = "paragraphs"
-
-RESPONSE_KEY_DEADLINE = "deadline"
-
-RESPONSE_KEY_PARTICIPANTS = "participants"
-
-RESPONSE_KEY_SUGGESTIONS = "suggestions"
-
-RESPONSE_KEY_TITLE = "title"
-
 MESSAGE_MANDATORY_FIELD_WAS_NOT_SUPPLIED = "The mandatory field was not supplied: {0}"
 
 MAX_SIZE_TITLE = 64
@@ -58,26 +38,7 @@ REQUEST_KEY_STORY_ID = "story_id"
 
 KEY_ID = "id"
 
-RESPONSE_KEY_MESSAGE = "message"
-
-RESPONSE_KEY_STORIES = "stories"
-
-RESPONSE_KEY_DATA = 'data'
-
-RESPONSE_KEY_SUCCESS = 'success'
-
 main_blue_print = Blueprint('main', __name__)
-
-
-def create_response(success, data=None, message=None):
-    resp = {
-        RESPONSE_KEY_SUCCESS: success
-    }
-    if data is not None:
-        resp[RESPONSE_KEY_DATA] = data
-    if message is not None:
-        resp[RESPONSE_KEY_MESSAGE] = message
-    return Response(json.dumps(resp), mimetype='application/json')
 
 
 @main_blue_print.route('/story', methods=['POST'])
